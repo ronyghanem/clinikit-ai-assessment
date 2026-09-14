@@ -2,59 +2,68 @@
 
 ## Overview
 
-This project builds a machine learning system to predict whether a patient will miss a scheduled medical appointment.
+This project builds a machine learning system to predict whether a patient is likely to miss a scheduled medical appointment.
+
+The solution uses the **official CliniKit dataset provided for this assessment**, containing 3,000 historical appointment records.
 
 The workflow includes:
 
-1. Generating a synthetic appointment dataset.
-2. Exploring the dataset.
-3. Cleaning and preprocessing the data.
-4. Handling missing values and duplicate records.
-5. Training multiple machine learning models.
-6. Evaluating model performance.
-7. Selecting the best-performing model.
-8. Saving the trained model and evaluation results.
-9. Making predictions on new appointment examples.
+1. Loading and validating the provided dataset.
+2. Exploring missing values, duplicates, and target distribution.
+3. Removing the identifier column from model features.
+4. Preprocessing numerical and categorical features.
+5. Splitting the data using a stratified train/test split.
+6. Training and comparing Logistic Regression and Random Forest models.
+7. Evaluating model performance using classification metrics.
+8. Selecting the best model based on no-show F1-score.
+9. Saving the trained model and evaluation results.
+10. Making predictions on new appointment examples.
 
-> **Important:** No real patient dataset was provided with the assessment. Therefore, this project uses a synthetic dataset created specifically for this exercise. The results are for educational demonstration only and have no clinical validity.
+> **Important:** The dataset was provided by CliniKit specifically for this assessment. The resulting model is an assessment prototype and should not be interpreted as clinically validated or suitable for medical decision-making.
 
 ---
 
 ## Dataset
 
-The synthetic dataset contains **2,000 appointment records**.
+The provided dataset contains **3,000 historical appointment records**, with appointment IDs ranging from **1 to 3000**.
 
-The following features are included:
+The dataset contains the following fields:
 
-| Feature | Description |
-|---|---|
-| `age` | Patient age |
-| `gender` | Patient gender |
-| `appointment_type` | Type of appointment |
+| Feature                   | Description                                    |
+| ------------------------- | ---------------------------------------------- |
+| `appointment_id`          | Unique appointment identifier                  |
+| `age`                     | Patient age                                    |
+| `gender`                  | Patient gender                                 |
+| `appointment_type`        | Type of appointment                            |
 | `days_before_appointment` | Number of days between booking and appointment |
-| `previous_appointments` | Number of previous appointments |
-| `previous_no_shows` | Number of previous missed appointments |
-| `weekday` | Appointment weekday |
-| `appointment_time` | Appointment time |
-| `reminder_sent` | Whether a reminder was sent |
-| `new_patient` | Whether the patient is new |
-| `no_show` | Target variable: 0 = attended, 1 = missed |
+| `previous_appointments`   | Number of previous appointments                |
+| `previous_no_shows`       | Number of previous missed appointments         |
+| `weekday`                 | Appointment weekday                            |
+| `appointment_time`        | Appointment time range                         |
+| `reminder_sent`           | Whether a reminder was sent                    |
+| `new_patient`             | Whether the patient is a new patient           |
+| `no_show`                 | Target variable: 0 = attended, 1 = missed      |
 
-### Dataset Statistics
+### Dataset Validation
 
-Target distribution:
+The dataset contains:
 
-- Attended: **1,553 (77.65%)**
-- No-show: **447 (22.35%)**
+* **3,000 records**
+* **12 columns**
+* **0 duplicate rows**
+* **0 missing values**
 
-The dataset also intentionally contains:
+The `appointment_id` column is used only as an identifier and is excluded from model training.
 
-- 10 missing `age` values
-- 10 missing `appointment_type` values
-- 10 missing `appointment_time` values
-- 1 duplicate row
+### Target Distribution
 
-These cases are included to demonstrate data-cleaning and preprocessing techniques.
+| Outcome   |   Records | Percentage |
+| --------- | --------: | ---------: |
+| Attended  |     2,522 |     84.07% |
+| No-show   |       478 |     15.93% |
+| **Total** | **3,000** |   **100%** |
+
+Because the no-show class represents only 15.93% of the dataset, accuracy alone is not sufficient for evaluating the model. Particular attention is therefore given to precision, recall, and F1-score for the no-show class.
 
 ---
 
@@ -74,198 +83,296 @@ part2-machine-learning/
 │   ├── feature_importance.csv
 │   └── confusion_matrix.png
 │
-├── generate_data.py
 ├── train.py
 ├── predict.py
 ├── requirements.txt
 └── README.md
-Installation
+```
+
+---
+
+## Installation
 
 Create and activate a virtual environment.
 
-Windows
+### Windows
+
+```bash
 python -m venv .venv
 .venv\Scripts\activate
+```
 
 Install the required dependencies:
 
+```bash
 pip install -r requirements.txt
-1. Generate the Dataset
+```
 
-Because no real dataset was provided, the project includes a script that generates a reproducible synthetic dataset.
+---
 
-Run:
+# 1. Train the Models
 
-python generate_data.py
+The provided CliniKit dataset should be placed at:
 
-The script creates:
-
+```text
 data/appointments.csv
-
-The dataset contains 2,000 synthetic appointment records.
-
-2. Train the Models
+```
 
 Run:
 
+```bash
 python train.py
+```
 
-The training pipeline performs the following steps:
+The training pipeline performs the following steps.
 
-Data Exploration
+### Data Validation
 
 The script checks:
 
-Dataset shape
-Data types
-Missing values
-Duplicate rows
-Target distribution
-Data Cleaning
+* Dataset shape
+* Required columns
+* Missing values
+* Duplicate rows
+* Target distribution
 
-Duplicate rows are removed before training.
+### Feature Selection
 
-Train/Test Split
+`appointment_id` is excluded because it is an identifier and does not provide meaningful predictive information.
+
+The model uses 10 predictive features:
+
+**Numerical features:**
+
+* `age`
+* `days_before_appointment`
+* `previous_appointments`
+* `previous_no_shows`
+* `reminder_sent`
+* `new_patient`
+
+**Categorical features:**
+
+* `gender`
+* `appointment_type`
+* `weekday`
+* `appointment_time`
+
+### Train/Test Split
 
 The dataset is divided into:
 
-80% training data
-20% test data
+* **80% training data**
+* **20% test data**
 
-A stratified split is used to preserve the target distribution.
+A stratified split with `random_state=42` is used to preserve the target distribution.
 
-Missing Value Handling
+This produces:
 
-Numeric features use median imputation.
+* **2,400 training records**
+* **600 testing records**
 
-Categorical features use most-frequent-value imputation.
+### Preprocessing
 
-Feature Encoding
+Numerical features are processed using:
 
-Categorical features are transformed using one-hot encoding.
+* Median imputation
+* StandardScaler
 
-Unknown categories are safely ignored during prediction.
+Categorical features are processed using:
 
-Feature Scaling
+* Most-frequent-value imputation
+* One-hot encoding
+* `handle_unknown="ignore"`
 
-Numeric features are standardized using StandardScaler.
+The preprocessing and model are stored together in a single scikit-learn pipeline to ensure consistent transformations during prediction.
 
-Models
+---
 
-Two classification models are trained and compared:
+# 2. Models
 
-1. Logistic Regression
+Two classification models are trained and compared.
 
-Logistic Regression provides a simple and interpretable baseline model.
+## Logistic Regression
 
-2. Random Forest
+Logistic Regression provides a simple and interpretable baseline for binary classification.
 
-Random Forest is used as a non-linear tree-based model that can capture more complex relationships between features.
+## Random Forest
 
-Evaluation Metrics
+Random Forest is a non-linear ensemble model capable of capturing more complex relationships between appointment features.
+
+Class balancing is enabled for the Random Forest to give additional weight to the minority no-show class.
+
+---
+
+# 3. Evaluation
 
 The models are evaluated using:
 
-Accuracy
-Precision for no-show
-Recall for no-show
-F1-score for no-show
-ROC-AUC
-Classification report
-Confusion matrix
+* Accuracy
+* Precision for no-show
+* Recall for no-show
+* F1-score for no-show
+* ROC-AUC
+* Classification report
+* Confusion matrix
 
-Because identifying patients who may miss appointments is important, the F1-score for the no-show class is used as the main model-selection metric.
+The **F1-score for the no-show class** is used as the primary model-selection metric because the main objective is to identify appointments that may be missed rather than simply maximize overall accuracy.
 
-Results
-Logistic Regression
-Metric	Score
-Accuracy	0.5600
-Precision (No-show)	0.2723
-Recall (No-show)	0.5843
-F1-score (No-show)	0.3714
-ROC-AUC	0.6165
-Random Forest
-Metric	Score
-Accuracy	0.6600
-Precision (No-show)	0.2920
-Recall (No-show)	0.3708
-F1-score (No-show)	0.3267
-ROC-AUC	0.6213
-Selected Model
+---
 
-Logistic Regression was selected because it achieved the higher F1-score for the no-show class:
+## Results
 
-Logistic Regression: 0.3714
-Random Forest:       0.3267
+### Logistic Regression
 
-Although Random Forest achieved higher overall accuracy and slightly higher ROC-AUC, Logistic Regression was preferred because the main objective is to identify the no-show class effectively.
+| Metric              |  Score |
+| ------------------- | -----: |
+| Accuracy            | 0.8517 |
+| Precision (No-show) | 0.6667 |
+| Recall (No-show)    | 0.1458 |
+| F1-score (No-show)  | 0.2393 |
+| ROC-AUC             | 0.6959 |
 
-Feature Influence
+### Random Forest
 
-The trained model shows that several features contribute to the prediction, including:
+| Metric              |      Score |
+| ------------------- | ---------: |
+| Accuracy            |     0.8100 |
+| Precision (No-show) |     0.3816 |
+| Recall (No-show)    |     0.3021 |
+| F1-score (No-show)  | **0.3372** |
+| ROC-AUC             |     0.6840 |
 
-Appointment time
-Previous no-shows
-Days before appointment
-Previous appointments
-New-patient status
-Reminder status
-Appointment weekday
+---
 
-The complete feature importance output is saved in:
+## Selected Model
 
+**Random Forest** was selected because it achieved the higher F1-score for the no-show class:
+
+```text
+Random Forest:       0.3372
+Logistic Regression: 0.2393
+```
+
+Although Logistic Regression achieved higher overall accuracy and ROC-AUC, it detected substantially fewer actual no-shows, with a recall of only 14.58%.
+
+Random Forest achieved:
+
+* 30.21% no-show recall
+* 38.16% no-show precision
+* 33.72% no-show F1-score
+
+This makes Random Forest the preferred model for the assessment objective of identifying potential no-shows.
+
+---
+
+# 4. Feature Importance
+
+Feature influence is extracted from the selected Random Forest model after preprocessing.
+
+The complete feature-importance output is saved in:
+
+```text
 results/feature_importance.csv
-3. Make Predictions
+```
+
+The output includes the transformed one-hot encoded categorical features as well as the numerical features.
+
+This provides an indication of which input variables contributed most strongly to the model's predictions.
+
+Feature importance should be interpreted as model behavior rather than causal evidence about why a patient may miss an appointment.
+
+---
+
+# 5. Make Predictions
 
 After training the model, run:
 
+```bash
 python predict.py
+```
 
 The prediction script loads:
 
+```text
 models/no_show_model.joblib
+```
 
-and predicts the probability that a patient will miss an appointment.
+and generates no-show probabilities for example appointments.
 
-Example predictions from the trained model:
+Example output from the trained model:
 
-Example	No-show Probability	Prediction
-Example 1	0.145	Likely to attend
-Example 2	0.873	Likely to miss
-Example 3	0.121	Likely to attend
+| Example   | No-show Probability | Prediction       |
+| --------- | ------------------: | ---------------- |
+| Example 1 |               0.057 | Likely to attend |
+| Example 2 |               0.403 | Likely to attend |
+| Example 3 |               0.153 | Likely to attend |
 
-The probability can be used by a clinic system to identify appointments that may require additional attention or reminders.
+The probability represents the model's estimated likelihood of a no-show.
 
-Generated Files
+The default classification decision uses the model's standard probability threshold.
 
-After training, the following files are created:
+---
 
-Trained Model
+# 6. Generated Files
+
+After running the training script, the following artifacts are produced.
+
+### Trained Model
+
+```text
 models/no_show_model.joblib
+```
 
-The selected Logistic Regression pipeline is saved using joblib.
+Contains the complete preprocessing and Random Forest prediction pipeline.
 
-Metrics
+### Metrics
+
+```text
 results/metrics.json
+```
 
-Contains the evaluation results for the trained models.
+Contains the evaluation results for both trained models and the selected model.
 
-Feature Importance
+### Feature Importance
+
+```text
 results/feature_importance.csv
+```
 
-Contains the model's feature coefficients/influence.
+Contains the feature importance values generated from the selected Random Forest model.
 
-Confusion Matrix
+### Confusion Matrix
+
+```text
 results/confusion_matrix.png
+```
 
-Provides a visual representation of the model's predictions.
+Provides a visual representation of the model's predictions on the test set.
 
-Production Integration
+---
 
-A production clinic system could use the saved model as part of an appointment management workflow.
+# 7. Example Workflow
+
+The complete workflow is:
+
+```bash
+pip install -r requirements.txt
+python train.py
+python predict.py
+```
+
+No synthetic data generation step is required because the official CliniKit dataset is used directly.
+
+---
+
+# 8. Potential Production Integration
+
+A clinic appointment-management system could use a similar model as an operational support tool.
 
 For example:
 
+```text
 Patient books appointment
         ↓
 Appointment information collected
@@ -274,70 +381,122 @@ ML model predicts no-show probability
         ↓
 Risk level calculated
         ↓
-Clinic system decides whether
-additional reminder actions are needed
+Clinic system determines whether
+additional reminder actions are appropriate
+```
 
-The model should only support operational decisions and should not be used as a medical diagnosis tool.
+The model should be treated as a decision-support component rather than a medical diagnostic system.
 
-Limitations
+---
 
-This project is an educational machine learning prototype.
+# 9. Limitations
 
-Synthetic Data
+### Assessment Dataset
 
-The dataset is artificially generated because no real dataset was supplied with the assessment.
+The model was trained and evaluated on the dataset provided for this assessment. Its performance may not generalize to other clinics, patient populations, or appointment systems.
 
-Therefore, the model's performance should not be interpreted as real-world clinical performance.
+### Class Imbalance
 
-Limited Dataset Size
+Only 15.93% of appointments in the dataset are no-shows.
 
-The dataset contains only 2,000 synthetic records and may not represent real patient behavior.
+Therefore, accuracy alone can be misleading. The evaluation focuses on the no-show precision, recall, and F1-score.
 
-Moderate Performance
+### Moderate Predictive Performance
 
-The ROC-AUC and F1-score are relatively modest.
+The selected Random Forest achieved:
 
-This is expected given the synthetic dataset and simplified feature set.
+* F1-score: **0.3372**
+* Recall: **0.3021**
+* ROC-AUC: **0.6840**
 
-Class Imbalance
+These results indicate that the model provides a useful baseline but is not sufficiently accurate for unsupervised real-world deployment.
 
-The dataset contains more attended appointments than no-shows.
+### Limited Feature Set
 
-For this reason, accuracy alone is not sufficient to evaluate the model.
+The dataset contains a relatively small number of appointment-related variables. Additional operational features could potentially improve performance.
 
-Real-World Deployment
+### Real-World Deployment
 
 Before production use, the model would require:
 
-Real historical appointment data
-Data validation
-Larger datasets
-Cross-validation
-Hyperparameter tuning
-Bias and fairness evaluation
-Monitoring for model drift
-Privacy and security controls
-Clinical/operational validation
-Reproducibility
+* Larger and representative historical datasets
+* Cross-validation
+* Hyperparameter tuning
+* Threshold optimization
+* Bias and fairness evaluation
+* Privacy and security controls
+* Model monitoring
+* Drift detection
+* Operational validation
+* Appropriate human oversight
 
-The synthetic data generation uses a fixed random seed so that the experiment can be reproduced.
+---
 
-The complete workflow is:
+# 10. Responsible Use
 
-python generate_data.py
+This model predicts appointment attendance behavior and should not be used to make medical diagnoses or clinical decisions.
+
+A production implementation should use predictions only as an operational support signal, such as prioritizing reminders, while keeping appropriate human oversight.
+
+Model predictions should also be handled according to applicable privacy and data-protection requirements.
+
+---
+
+# 11. Reproducibility
+
+The training process uses:
+
+```text
+random_state = 42
+```
+
+for reproducible train/test splitting and model training.
+
+The official dataset is stored at:
+
+```text
+data/appointments.csv
+```
+
+Running:
+
+```bash
 python train.py
-python predict.py
-Technologies
-Python
-Pandas
-NumPy
-Scikit-learn
-Matplotlib
-Joblib
-Conclusion
+```
 
-This project demonstrates a complete machine learning workflow for appointment no-show prediction, including data generation, exploration, preprocessing, model training, evaluation, model selection, persistence, and prediction.
+recreates the trained model and evaluation artifacts.
 
-The solution prioritizes the no-show F1-score when selecting the final model and clearly documents the limitations of using synthetic data.
+---
 
-The resulting model is intended as an educational proof of concept rather than a production-ready clinical prediction system.
+# Technologies
+
+* Python
+* Pandas
+* NumPy
+* Scikit-learn
+* Matplotlib
+* Joblib
+
+---
+
+# Conclusion
+
+This project demonstrates an end-to-end machine learning workflow for appointment no-show prediction using the official CliniKit assessment dataset.
+
+The solution includes:
+
+* Dataset validation
+* Data preprocessing
+* Stratified train/test splitting
+* Logistic Regression baseline
+* Random Forest model
+* Model comparison
+* No-show-focused evaluation
+* Model selection
+* Feature importance analysis
+* Model persistence
+* Example predictions
+
+The Random Forest model was selected based on its higher no-show F1-score of **0.3372**, compared with **0.2393** for Logistic Regression.
+
+The resulting model is an **assessment prototype**, not a clinically validated prediction system.
