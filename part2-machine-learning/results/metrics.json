@@ -1,0 +1,17 @@
+{
+  "selected_model": "Logistic Regression",
+  "logistic_regression": {
+    "accuracy": 0.56,
+    "precision_no_show": 0.27225130890052357,
+    "recall_no_show": 0.5842696629213483,
+    "f1_no_show": 0.37142857142857144,
+    "roc_auc": 0.6164962607030602
+  },
+  "random_forest": {
+    "accuracy": 0.66,
+    "precision_no_show": 0.2920353982300885,
+    "recall_no_show": 0.3707865168539326,
+    "f1_no_show": 0.32673267326732675,
+    "roc_auc": 0.6213374760648868
+  }
+}
